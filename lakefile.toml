@@ -1,0 +1,6 @@
+name = "lean_zfc"
+version = "0.1.0"
+defaultTargets = ["LeanZfc"]
+
+[[lean_lib]]
+name = "LeanZfc"
