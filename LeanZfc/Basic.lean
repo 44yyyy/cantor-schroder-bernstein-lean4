@@ -5,7 +5,7 @@ namespace LeanZfc
 noncomputable section
 
 /-
-# Basic Stuff
+# Basic Set Operations
 -/
 
 /-
@@ -32,7 +32,7 @@ theorem empty_subset (A : Set) : ∅ ⊆ A := by
   simp at hx
 
 /-
-## Binary Union
+## Binary Union (A ∪ B)
 -/
 
 def union (A B : Set) : Set :=
@@ -45,25 +45,36 @@ instance : Union Set where
 theorem mem_union_iff (A B x : Set) : x ∈ A ∪ B ↔ x ∈ A ∨ x ∈ B := by
   apply Iff.intro
   intro hx
-  dsimp [Union.union, union] at hx
+  change x ∈ ⋃ (pair A B) at hx
   rw [mem_setunion_iff] at hx
-  let ⟨Y, hY, hxY⟩ := hx
-  rw [mem_pair_iff] at hY
-  cases hY with
-  | inl hYA =>
-    rw [hYA] at hxY
-    exact Or.inl hxY
-  | inr hYB =>
-    rw [hYB] at hxY
-    exact Or.inr hxY
+  cases hx with
+  | intro Y h =>
+    cases h with
+    | intro hY hxY =>
+      rw [mem_pair_iff] at hY
+      cases hY with
+      | inl hYA =>
+        rw [hYA] at hxY
+        exact Or.inl hxY
+      | inr hYB =>
+        rw [hYB] at hxY
+        exact Or.inr hxY
   intro hx
-  dsimp [Union.union, union]
+  change x ∈ ⋃ (pair A B)
   rw [mem_setunion_iff]
   cases hx with
   | inl hxA =>
-    exact ⟨A, by simp, hxA⟩
+    apply Exists.intro A
+    apply And.intro
+    rw [mem_pair_iff]
+    exact Or.inl rfl
+    exact hxA
   | inr hxB =>
-    exact ⟨B, by simp, hxB⟩
+    apply Exists.intro B
+    apply And.intro
+    rw [mem_pair_iff]
+    exact Or.inr rfl
+    exact hxB
 
 theorem union_comm (A B : Set) : A ∪ B = B ∪ A := by
   apply extensionality
@@ -81,77 +92,94 @@ theorem subset_union_right (A B : Set) : B ⊆ A ∪ B := by
   exact Or.inr hx
 
 /-
-## Binary Intersection
+## Binary Intersection (A ∩ B)
 -/
 
-def intersection (A B : Set) : Set :=
+def inter (A B : Set) : Set :=
   sep A (fun x => x ∈ B)
 
 instance : Inter Set where
-  inter := intersection
+  inter := inter
 
 @[simp]
-theorem mem_intersection_iff (A B x : Set) : x ∈ A ∩ B ↔ x ∈ A ∧ x ∈ B :=
+theorem mem_inter_iff (A B x : Set) : x ∈ A ∩ B ↔ x ∈ A ∧ x ∈ B :=
   mem_sep_iff A (fun z => z ∈ B) x
 
-theorem intersection_comm (A B : Set) : A ∩ B = B ∩ A := by
+theorem inter_comm (A B : Set) : A ∩ B = B ∩ A := by
   apply extensionality
   intro x
   simp [And.comm]
 
-theorem intersection_subset_left (A B : Set) : A ∩ B ⊆ A := by
+theorem inter_subset_left (A B : Set) : A ∩ B ⊆ A := by
   intro x hx
-  simp at hx
-  exact hx.1
+  rw [mem_inter_iff] at hx
+  cases hx with
+  | intro hxA _ =>
+    exact hxA
 
-theorem intersection_subset_right (A B : Set) : A ∩ B ⊆ B := by
+theorem inter_subset_right (A B : Set) : A ∩ B ⊆ B := by
   intro x hx
-  simp at hx
-  exact hx.2
+  rw [mem_inter_iff] at hx
+  cases hx with
+  | intro _ hxB =>
+    exact hxB
 
 /-
-## Set Difference
+## Set Difference (A \ B)
 -/
 
-def setdiff (A B : Set) : Set :=
+def sdiff (A B : Set) : Set :=
   sep A (fun x => x ∉ B)
 
 instance : SDiff Set where
-  sdiff := setdiff
+  sdiff := sdiff
 
 @[simp]
-theorem mem_setdiff_iff (A B x : Set) : x ∈ A \ B ↔ x ∈ A ∧ x ∉ B :=
+theorem mem_sdiff_iff (A B x : Set) : x ∈ A \ B ↔ x ∈ A ∧ x ∉ B :=
   mem_sep_iff A (fun z => z ∉ B) x
 
-theorem setdiff_subset (A B : Set) : A \ B ⊆ A := by
+theorem sdiff_subset (A B : Set) : A \ B ⊆ A := by
   intro x hx
-  simp at hx
-  exact hx.1
-
-theorem setdiff_inter_empty (A B : Set) : (A \ B) ∩ B = ∅ := by
-  apply extensionality
-  intro x
-  apply Iff.intro
-  intro hx
-  simp at hx
-  exact False.elim (hx.1.2 hx.2)
-  intro hx
-  simp at hx
-
-theorem union_setdiff_of_subset {A B : Set} (h : B ⊆ A) : B ∪ (A \ B) = A := by
-  apply extensionality
-  intro x
-  apply Iff.intro
-  intro hx
-  simp at hx
+  rw [mem_sdiff_iff] at hx
   cases hx with
-  | inl hxB => exact h x hxB
-  | inr hxDiff => exact hxDiff.1
+  | intro hxA _ =>
+    exact hxA
+
+theorem sdiff_inter_empty (A B : Set) : (A \ B) ∩ B = ∅ := by
+  apply extensionality
+  intro x
+  apply Iff.intro
+  intro hx
+  rw [mem_inter_iff, mem_sdiff_iff] at hx
+  cases hx with
+  | intro hdiff hxB =>
+    cases hdiff with
+    | intro _ hnotB =>
+      exact False.elim (hnotB hxB)
+  intro hx
+  simp at hx
+
+theorem union_sdiff_of_subset {A B : Set} (h : B ⊆ A) : B ∪ (A \ B) = A := by
+  apply extensionality
+  intro x
+  apply Iff.intro
+  intro hx
+  rw [mem_union_iff] at hx
+  cases hx with
+  | inl hxB =>
+    exact h x hxB
+  | inr hxDiff =>
+    rw [mem_sdiff_iff] at hxDiff
+    cases hxDiff with
+    | intro hxA _ =>
+      exact hxA
   intro hxA
-  simp
+  rw [mem_union_iff]
   by_cases hxB : x ∈ B
   exact Or.inl hxB
-  exact Or.inr ⟨hxA, hxB⟩
+  apply Or.inr
+  rw [mem_sdiff_iff]
+  exact And.intro hxA hxB
 
 end
 

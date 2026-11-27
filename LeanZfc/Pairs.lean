@@ -58,8 +58,10 @@ theorem pair_eq_singleton_iff {a b c : Set} : pair a b = singleton c ↔ a = c �
   rw [mem_singleton_iff] at ha hb
   exact And.intro ha hb
   intro h
-  rw [h.1, h.2]
-  rfl
+  cases h with
+  | intro hac hbc =>
+    rw [hac, hbc]
+    rfl
 
 theorem opair_fst_eq {a b c d : Set} (h : opair a b = opair c d) : a = c := by
   have hs : singleton a ∈ opair c d := by
@@ -70,8 +72,12 @@ theorem opair_fst_eq {a b c d : Set} (h : opair a b = opair c d) : a = c := by
   | inl h1 =>
     exact singleton_inj h1
   | inr h2 =>
-    have hcd : c = a ∧ d = a := (pair_eq_singleton_iff.mp h2.symm)
-    exact hcd.1.symm
+    have hcd : pair c d = singleton a := by
+      rw [h2]
+    rw [pair_eq_singleton_iff] at hcd
+    cases hcd with
+    | intro hca _ =>
+      rw [hca]
 
 theorem opair_snd_eq {a b c d : Set} (h : opair a b = opair c d) : b = d := by
   have hac : a = c := opair_fst_eq h
@@ -82,19 +88,27 @@ theorem opair_snd_eq {a b c d : Set} (h : opair a b = opair c d) : b = d := by
   rw [mem_opair_iff] at hp1
   cases hp1 with
   | inl h_ab_sing =>
-    have hab : a = a ∧ b = a := pair_eq_singleton_iff.mp h_ab_sing
-    have hp2 : pair a d ∈ opair a b := by
-      rw [h, mem_opair_iff]
-      exact Or.inr rfl
-    rw [mem_opair_iff] at hp2
-    cases hp2 with
-    | inl h_ad_sing =>
-      have had : a = a ∧ d = a := pair_eq_singleton_iff.mp h_ad_sing
-      rw [hab.2, had.2]
-    | inr h_ad_eq =>
-      rw [← h_ad_eq] at h_ab_sing
-      have had : a = a ∧ d = a := pair_eq_singleton_iff.mp h_ab_sing
-      rw [hab.2, had.2]
+    rw [pair_eq_singleton_iff] at h_ab_sing
+    cases h_ab_sing with
+    | intro _ hba =>
+      have hp2 : pair a d ∈ opair a b := by
+        rw [h, mem_opair_iff]
+        exact Or.inr rfl
+      rw [mem_opair_iff] at hp2
+      cases hp2 with
+      | inl h_ad_sing =>
+        rw [pair_eq_singleton_iff] at h_ad_sing
+        cases h_ad_sing with
+        | intro _ hda =>
+          rw [hba, hda]
+      | inr h_ad_eq =>
+        have h_ad_sing : pair a d = singleton a := by
+          rw [h_ad_eq, pair_eq_singleton_iff]
+          exact And.intro rfl hba
+        rw [pair_eq_singleton_iff] at h_ad_sing
+        cases h_ad_sing with
+        | intro _ hda =>
+          rw [hba, hda]
   | inr h_ab_eq =>
     have hb : b ∈ pair a d := by
       rw [← h_ab_eq, mem_pair_iff]
@@ -107,9 +121,12 @@ theorem opair_snd_eq {a b c d : Set} (h : opair a b = opair c d) : b = d := by
         exact Or.inr rfl
       rw [mem_pair_iff] at hd
       cases hd with
-      | inl hda => rw [hba, hda]
-      | inr hdb => exact hdb.symm
-    | inr hbd => exact hbd
+      | inl hda =>
+        rw [hba, hda]
+      | inr hdb =>
+        rw [hdb]
+    | inr hbd =>
+      exact hbd
 
 @[simp]
 theorem opair_inj (a b c d : Set) : opair a b = opair c d ↔ a = c ∧ b = d := by
@@ -117,7 +134,9 @@ theorem opair_inj (a b c d : Set) : opair a b = opair c d ↔ a = c ∧ b = d :=
   intro h
   exact And.intro (opair_fst_eq h) (opair_snd_eq h)
   intro h
-  rw [h.1, h.2]
+  cases h with
+  | intro hac hbd =>
+    rw [hac, hbd]
 
 /-
 ## Cartesian Product (A ×ˢ B)
@@ -134,7 +153,9 @@ theorem mem_product_iff (A B p : Set) : p ∈ A ×ˢ B ↔ ∃ a ∈ A, ∃ b �
   rw [mem_sep_iff]
   apply Iff.intro
   intro h
-  exact h.2
+  cases h with
+  | intro _ hrest =>
+    exact hrest
   intro h
   apply And.intro
   cases h with
